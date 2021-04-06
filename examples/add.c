@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     v2 = integer_create(64, input, bob);
   }
   integer_t *sum = integer_add(v1, v2);
-  printf("Sum is %d\n", integer_reveal(sum, public));
+  printf("Sum is %lld\n", integer_reveal(sum, public));
   integer_destroy(v1);
   integer_destroy(v2);
   integer_destroy(sum);
