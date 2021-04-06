@@ -9,7 +9,6 @@ make
 
 Then try:
 ```
-cd ..
 ./add 1 2 & ./add 2 2
 ```
 
