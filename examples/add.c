@@ -13,19 +13,19 @@ int main(int argc, char **argv) {
   int input = atoi(argv[2]);
   int port = 12345;
   netio_t *io = netio_create(party == alice ? NULL : "127.0.0.1", port);
-  setup_semi_honest_c(io, party);
+  semihonest_t *sh = setup_semi_honest_c(io, party);
   integer_t *v1;
   integer_t *v2;
   if (party == alice) {
-    v1 = integer_create(64, input, alice);
-    v2 = integer_create(64, 0, bob);
+    v1 = integer_create(sh, 64, input, alice);
+    v2 = integer_create(sh, 64, 0, bob);
   }
   if (party == bob) {
-    v1 = integer_create(64, 0, alice);
-    v2 = integer_create(64, input, bob);
+    v1 = integer_create(sh, 64, 0, alice);
+    v2 = integer_create(sh, 64, input, bob);
   }
-  integer_t *sum = integer_add(v1, v2);
-  printf("Sum is %lld\n", integer_reveal(sum, public));
+  integer_t *sum = integer_add(sh, v1, v2);
+  printf("Sum is %lld\n", integer_reveal(sh, sum, public));
   integer_destroy(v1);
   integer_destroy(v2);
   integer_destroy(sum);
