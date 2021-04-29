@@ -25,6 +25,11 @@ void netio_recv_data(netio_t *io, void *data, int nbyte) {
   net->recv_data(data, nbyte);
 }
 
+void netio_flush(netio_t *io) {
+  NetIO *net = static_cast<NetIO *>(io->obj);
+  net->flush();
+}
+
 void netio_destroy(netio_t *io) {
   if (io == NULL) {
     return;
@@ -72,17 +77,19 @@ struct bit {
   void *obj;
 };
 
-bit_t *bit_create(semihonest_t *sh, bool b, int party) {
+bit_t *bit_create(semihonest_t *sh, netio_t *io, bool b, int party) {
   install_sh(sh);
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(b, party);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *bit_not(semihonest_t *sh, bit_t *bc) {
+bit_t *bit_not(semihonest_t *sh, netio_t *io, bit_t *bc) {
   install_sh(sh);
 
   Bit *b = static_cast<Bit *>(bc->obj);
@@ -91,10 +98,12 @@ bit_t *bit_not(semihonest_t *sh, bit_t *bc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(!*b);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *bit_and(semihonest_t *sh, bit_t *lhsc, bit_t *rhsc) {
+bit_t *bit_and(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
   install_sh(sh);
 
   Bit *lhs = static_cast<Bit *>(lhsc->obj);
@@ -104,10 +113,12 @@ bit_t *bit_and(semihonest_t *sh, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs & *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *bit_or(semihonest_t *sh, bit_t *lhsc, bit_t *rhsc) {
+bit_t *bit_or(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
   install_sh(sh);
 
   Bit *lhs = static_cast<Bit *>(lhsc->obj);
@@ -117,10 +128,12 @@ bit_t *bit_or(semihonest_t *sh, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs | *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *bit_xor(semihonest_t *sh, bit_t *lhsc, bit_t *rhsc) {
+bit_t *bit_xor(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
   install_sh(sh);
 
   Bit *lhs = static_cast<Bit *>(lhsc->obj);
@@ -130,10 +143,12 @@ bit_t *bit_xor(semihonest_t *sh, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs ^ *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *bit_cond(semihonest_t *sh, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
+bit_t *bit_cond(semihonest_t *sh, netio_t *io, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
   install_sh(sh);
 
   Bit *guard = static_cast<Bit *>(guardc->obj);
@@ -144,15 +159,20 @@ bit_t *bit_cond(semihonest_t *sh, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(If(*guard, *lhs, *rhs));
 
+  netio_flush(io);
+
   return v;
 }
 
-bool bit_reveal(semihonest_t *sh, bit_t *vc, int party) {
+bool bit_reveal(semihonest_t *sh, netio_t *io, bit_t *vc, int party) {
   install_sh(sh);
 
   Bit *v = static_cast<Bit *>(vc->obj);
+  bool ret = (*v).reveal<bool>(party);
 
-  return (*v).reveal<bool>(party);
+  netio_flush(io);
+
+  return ret;
 }
 
 void bit_destroy(bit_t *vc) {
@@ -168,7 +188,7 @@ struct integer {
   void *obj;
 };
 
-integer_t *integer_create(semihonest_t *sh, int length, int64_t init, int party) {
+integer_t *integer_create(semihonest_t *sh, netio_t *io, int length, int64_t init, int party) {
   install_sh(sh);
 
   integer_t *v;
@@ -176,10 +196,12 @@ integer_t *integer_create(semihonest_t *sh, int length, int64_t init, int party)
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(length, init, party);
 
+  netio_flush(io);
+
   return v;
 }
 
-integer_t *integer_add(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+integer_t *integer_add(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -189,10 +211,12 @@ integer_t *integer_add(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs + *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-integer_t *integer_sub(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+integer_t *integer_sub(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -202,10 +226,12 @@ integer_t *integer_sub(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs - *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-integer_t *integer_mult(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+integer_t *integer_mult(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -215,10 +241,12 @@ integer_t *integer_mult(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs * *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-integer_t *integer_div(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+integer_t *integer_div(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -228,10 +256,12 @@ integer_t *integer_div(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs / *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-integer_t *integer_mod(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+integer_t *integer_mod(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -241,10 +271,12 @@ integer_t *integer_mod(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs % *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *integer_eq(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+bit_t *integer_eq(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -254,10 +286,12 @@ bit_t *integer_eq(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs == *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *integer_lt(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+bit_t *integer_lt(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -267,10 +301,27 @@ bit_t *integer_lt(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs < *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-bit_t *integer_gt(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
+bit_t *integer_lte(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
+  install_sh(sh);
+
+  Integer *lhs = static_cast<Integer *>(lhsc->obj);
+  Integer *rhs = static_cast<Integer *>(rhsc->obj);
+
+  bit_t *v;
+  v      = (bit_t *) malloc(sizeof(bit_t));
+  v->obj = new Bit(*lhs <= *rhs);
+
+  netio_flush(io);
+
+  return v;
+}
+
+bit_t *integer_gt(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -280,10 +331,12 @@ bit_t *integer_gt(semihonest_t *sh, integer_t *lhsc, integer_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs > *rhs);
 
+  netio_flush(io);
+
   return v;
 }
 
-integer_t *integer_cond(semihonest_t *sh, bit_t *guardc, integer_t *lhsc, integer_t *rhsc) {
+integer_t *integer_cond(semihonest_t *sh, netio_t *io, bit_t *guardc, integer_t *lhsc, integer_t *rhsc) {
   install_sh(sh);
 
   Bit *guard   = static_cast<Bit *>(guardc->obj);
@@ -294,15 +347,20 @@ integer_t *integer_cond(semihonest_t *sh, bit_t *guardc, integer_t *lhsc, intege
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj= new Integer(If(*guard, *lhs, *rhs));
 
+  netio_flush(io);
+
   return v;
 }
 
-int64_t integer_reveal(semihonest_t *sh, integer_t *vc, int party) {
+int64_t integer_reveal(semihonest_t *sh, netio_t *io, integer_t *vc, int party) {
   install_sh(sh);
 
   Integer *v = static_cast<Integer *>(vc->obj);
+  int64_t ret = (*v).reveal<int64_t>(party);
 
-  return (*v).reveal<int64_t>(party);
+  netio_flush(io);
+
+  return ret;
 }
 
 void integer_destroy(integer_t *vc) {
