@@ -9,6 +9,13 @@ struct protocol {
   void *prot;
 };
 
+void protocol_flush(protocol_t *p) {
+  if (p->tag == 0) {
+    NetIO *net = static_cast<NetIO *>(p->net);
+    net->flush();
+  }
+}
+
 protocol_t *sh_create(const char *address, int port, int party) {
   protocol_t *p;
 
@@ -20,6 +27,8 @@ protocol_t *sh_create(const char *address, int port, int party) {
   setup_semi_honest(net, party);
   p->circ = CircuitExecution::circ_exec;
   p->prot = ProtocolExecution::prot_exec;
+
+  protocol_flush(p);
 
   return p;
 }
@@ -41,13 +50,6 @@ void protocol_install(protocol_t *p) {
   CircuitExecution::circ_exec = static_cast<CircuitExecution *>(p->circ);
   ProtocolExecution::prot_exec = static_cast<ProtocolExecution *>(p->prot);
   return;
-}
-
-void protocol_flush(protocol_t *p) {
-  if (p->tag == 0) {
-    NetIO *net = static_cast<NetIO *>(p->net);
-    net->flush();
-  }
 }
 
 void protocol_destroy(protocol_t *p) {
