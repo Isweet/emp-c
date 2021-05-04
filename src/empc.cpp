@@ -2,95 +2,87 @@
 #include "emp-sh2pc/emp-sh2pc.h"
 using namespace emp;
 
-struct netio {
-  void *obj;
-};
-
-netio_t *netio_create(const char *address, int port) {
-  netio_t *io;
-
-  io      = (netio_t *) malloc(sizeof(netio_t));
-  io->obj = new NetIO(address, port, false);
-
-  return io;
-}
-
-void netio_send_data(netio_t *io, void *data, int nbyte) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
-  net->send_data(data, nbyte);
-}
-
-void netio_recv_data(netio_t *io, void *data, int nbyte) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
-  net->recv_data(data, nbyte);
-}
-
-void netio_flush(netio_t *io) {
-  NetIO *net = static_cast<NetIO *>(io->obj);
-  net->flush();
-}
-
-void netio_destroy(netio_t *io) {
-  if (io == NULL) {
-    return;
-  }
-
-  delete static_cast<NetIO *>(io->obj);
-  free(io);
-}
-
-struct semihonest {
+struct protocol {
+  int tag;
+  void *net;
   void *circ;
   void *prot;
 };
 
-semihonest_t *setup_semi_honest_c(netio_t *io, int party) {
-  if (io == NULL) {
-    return NULL;
-  }
+protocol_t *sh_create(const char *address, int port, int party) {
+  protocol_t *p;
 
-  NetIO *net = static_cast<NetIO *>(io->obj);
+  NetIO *net = new NetIO(address, port, false);
 
-  semihonest_t *sh;
-
-  sh = (semihonest_t *) malloc(sizeof(semihonest_t));
+  p = (protocol_t *) malloc(sizeof(protocol_t));
+  p->tag  = 0;
+  p->net  = net;
   setup_semi_honest(net, party);
-  sh->circ = CircuitExecution::circ_exec;
-  sh->prot = ProtocolExecution::prot_exec;
+  p->circ = CircuitExecution::circ_exec;
+  p->prot = ProtocolExecution::prot_exec;
 
-  return sh;
+  return p;
 }
 
-void install_sh(semihonest_t *sh) {
-  CircuitExecution::circ_exec = static_cast<CircuitExecution *>(sh->circ);
-  ProtocolExecution::prot_exec = static_cast<ProtocolExecution *>(sh->prot);
+protocol_t *plain_create() {
+  protocol_t *p;
+
+  p = (protocol_t *) malloc(sizeof(protocol_t));
+  p->tag = 1;
+  p->net = NULL;
+  setup_plain_prot(false, "/dev/null");
+  p->circ = CircuitExecution::circ_exec;
+  p->prot = ProtocolExecution::prot_exec;
+
+  return p;
+}
+
+void protocol_install(protocol_t *p) {
+  CircuitExecution::circ_exec = static_cast<CircuitExecution *>(p->circ);
+  ProtocolExecution::prot_exec = static_cast<ProtocolExecution *>(p->prot);
   return;
 }
 
-void finalize_semi_honest_c(semihonest_t *sh) {
-  install_sh(sh);
-  finalize_semi_honest();
-  free(sh);
+void protocol_flush(protocol_t *p) {
+  if (p->tag == 0) {
+    NetIO *net = static_cast<NetIO *>(p->net);
+    net->flush();
+  }
+}
+
+void protocol_destroy(protocol_t *p) {
+  protocol_install(p);
+
+  if (p->tag == 0) {
+    delete static_cast<NetIO *>(p->net);
+    finalize_semi_honest();
+  } else if (p->tag == 1) {
+    finalize_plain_prot();
+  } else {
+    assert(false);
+  }
+
+  free(p);
 }
 
 struct bit {
   void *obj;
 };
 
-bit_t *bit_create(semihonest_t *sh, netio_t *io, bool b, int party) {
-  install_sh(sh);
+bit_t *bit_create(protocol_t *p, bool b, int party) {
+  protocol_install(p);
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(b, party);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *bit_not(semihonest_t *sh, netio_t *io, bit_t *bc) {
-  install_sh(sh);
+bit_t *bit_not(protocol_t *p, bit_t *bc) {
+  protocol_install(p);
 
   Bit *b = static_cast<Bit *>(bc->obj);
 
@@ -98,13 +90,13 @@ bit_t *bit_not(semihonest_t *sh, netio_t *io, bit_t *bc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(!*b);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *bit_and(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
-  install_sh(sh);
+bit_t *bit_and(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
 
   Bit *lhs = static_cast<Bit *>(lhsc->obj);
   Bit *rhs = static_cast<Bit *>(rhsc->obj);
@@ -113,13 +105,13 @@ bit_t *bit_and(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs & *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *bit_or(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
-  install_sh(sh);
+bit_t *bit_or(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
 
   Bit *lhs = static_cast<Bit *>(lhsc->obj);
   Bit *rhs = static_cast<Bit *>(rhsc->obj);
@@ -128,13 +120,13 @@ bit_t *bit_or(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs | *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *bit_xor(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
-  install_sh(sh);
+bit_t *bit_xor(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
 
   Bit *lhs = static_cast<Bit *>(lhsc->obj);
   Bit *rhs = static_cast<Bit *>(rhsc->obj);
@@ -143,13 +135,13 @@ bit_t *bit_xor(semihonest_t *sh, netio_t *io, bit_t *lhsc, bit_t *rhsc) {
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs ^ *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *bit_cond(semihonest_t *sh, netio_t *io, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
-  install_sh(sh);
+bit_t *bit_cond(protocol_t *p, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
 
   Bit *guard = static_cast<Bit *>(guardc->obj);
   Bit *lhs   = static_cast<Bit *>(lhsc->obj);
@@ -159,18 +151,18 @@ bit_t *bit_cond(semihonest_t *sh, netio_t *io, bit_t *guardc, bit_t *lhsc, bit_t
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(If(*guard, *lhs, *rhs));
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bool bit_reveal(semihonest_t *sh, netio_t *io, bit_t *vc, int party) {
-  install_sh(sh);
+bool bit_reveal(protocol_t *p, bit_t *vc, int party) {
+  protocol_install(p);
 
   Bit *v = static_cast<Bit *>(vc->obj);
   bool ret = (*v).reveal<bool>(party);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return ret;
 }
@@ -188,21 +180,21 @@ struct integer {
   void *obj;
 };
 
-integer_t *integer_create(semihonest_t *sh, netio_t *io, int length, int64_t init, int party) {
-  install_sh(sh);
+integer_t *integer_create(protocol_t *p, int length, int64_t init, int party) {
+  protocol_install(p);
 
   integer_t *v;
 
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(length, init, party);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-integer_t *integer_add(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+integer_t *integer_add(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -211,13 +203,13 @@ integer_t *integer_add(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs + *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-integer_t *integer_sub(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+integer_t *integer_sub(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -226,13 +218,13 @@ integer_t *integer_sub(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs - *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-integer_t *integer_mult(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+integer_t *integer_mult(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -241,13 +233,13 @@ integer_t *integer_mult(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs * *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-integer_t *integer_div(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+integer_t *integer_div(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -256,13 +248,13 @@ integer_t *integer_div(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs / *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-integer_t *integer_mod(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+integer_t *integer_mod(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -271,13 +263,13 @@ integer_t *integer_mod(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs % *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *integer_eq(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+bit_t *integer_eq(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -286,13 +278,13 @@ bit_t *integer_eq(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhs
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs == *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *integer_lt(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+bit_t *integer_lt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -301,13 +293,13 @@ bit_t *integer_lt(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhs
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs < *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *integer_lte(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+bit_t *integer_lte(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -316,13 +308,13 @@ bit_t *integer_lte(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rh
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs <= *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-bit_t *integer_gt(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+bit_t *integer_gt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
@@ -331,13 +323,13 @@ bit_t *integer_gt(semihonest_t *sh, netio_t *io, integer_t *lhsc, integer_t *rhs
   v      = (bit_t *) malloc(sizeof(bit_t));
   v->obj = new Bit(*lhs > *rhs);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-integer_t *integer_cond(semihonest_t *sh, netio_t *io, bit_t *guardc, integer_t *lhsc, integer_t *rhsc) {
-  install_sh(sh);
+integer_t *integer_cond(protocol_t *p, bit_t *guardc, integer_t *lhsc, integer_t *rhsc) {
+  protocol_install(p);
 
   Bit *guard   = static_cast<Bit *>(guardc->obj);
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
@@ -347,18 +339,18 @@ integer_t *integer_cond(semihonest_t *sh, netio_t *io, bit_t *guardc, integer_t 
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj= new Integer(If(*guard, *lhs, *rhs));
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return v;
 }
 
-int64_t integer_reveal(semihonest_t *sh, netio_t *io, integer_t *vc, int party) {
-  install_sh(sh);
+int64_t integer_reveal(protocol_t *p, integer_t *vc, int party) {
+  protocol_install(p);
 
   Integer *v = static_cast<Integer *>(vc->obj);
   int64_t ret = (*v).reveal<int64_t>(party);
 
-  netio_flush(io);
+  protocol_flush(p);
 
   return ret;
 }
