@@ -67,93 +67,125 @@ void protocol_destroy(protocol_t *p) {
   free(p);
 }
 
-struct bit {
-  void *obj;
-};
-
-bit_t *bit_create(protocol_t *p, bool b, int party) {
+bit_t bit_create_s(protocol_t *p, bool b, int party) {
   protocol_install(p);
 
-  bit_t *v;
-  v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(b, party);
+  alignas(16) bit_t v;
+  new (v.obj) Bit(b, party);
 
   protocol_flush(p);
+
+  return v;
+}
+
+bit_t bit_not_s(protocol_t *p, bit_t *bc) {
+  protocol_install(p);
+
+  Bit *b = static_cast<Bit *>((void *) bc->obj);
+
+  bit_t v;
+  new (v.obj) Bit(!*b);
+
+  protocol_flush(p);
+
+  return v;
+}
+
+bit_t bit_and_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
+
+  Bit *lhs = static_cast<Bit *>((void *) lhsc->obj);
+  Bit *rhs = static_cast<Bit *>((void *) rhsc->obj);
+
+  bit_t v;
+  new (v.obj) Bit(*lhs & *rhs);
+
+  protocol_flush(p);
+
+  return v;
+}
+
+bit_t bit_or_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
+
+  Bit *lhs = static_cast<Bit *>((void *) lhsc->obj);
+  Bit *rhs = static_cast<Bit *>((void *) rhsc->obj);
+
+  bit_t v;
+  new (v.obj) Bit(*lhs | *rhs);
+
+  protocol_flush(p);
+
+  return v;
+}
+
+bit_t bit_xor_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
+
+  Bit *lhs = static_cast<Bit *>((void *) lhsc->obj);
+  Bit *rhs = static_cast<Bit *>((void *) rhsc->obj);
+
+  bit_t v;
+  new (v.obj) Bit(*lhs ^ *rhs);
+
+  protocol_flush(p);
+
+  return v;
+}
+
+bit_t bit_cond_s(protocol_t *p, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
+  protocol_install(p);
+
+  Bit *guard = static_cast<Bit *>((void *) guardc->obj);
+  Bit *lhs   = static_cast<Bit *>((void *) lhsc->obj);
+  Bit *rhs   = static_cast<Bit *>((void *) rhsc->obj);
+
+  bit_t v;
+  new (v.obj) Bit(If(*guard, *lhs, *rhs));
+
+  protocol_flush(p);
+
+  return v;
+}
+
+bit_t *bit_create(protocol_t *p, bool b, int party) {
+  bit_t *v = (bit_t *) malloc(sizeof(bit_t));
+  *v = bit_create_s(p, b, party);
 
   return v;
 }
 
 bit_t *bit_not(protocol_t *p, bit_t *bc) {
-  protocol_install(p);
-
-  Bit *b = static_cast<Bit *>(bc->obj);
-
-  bit_t *v;
-  v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(!*b);
-
-  protocol_flush(p);
+  bit_t *v = (bit_t *) malloc(sizeof(bit_t));
+  *v = bit_not_s(p, bc);
 
   return v;
 }
 
 bit_t *bit_and(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
-  protocol_install(p);
-
-  Bit *lhs = static_cast<Bit *>(lhsc->obj);
-  Bit *rhs = static_cast<Bit *>(rhsc->obj);
-
-  bit_t *v;
-  v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs & *rhs);
-
-  protocol_flush(p);
+  bit_t *v = (bit_t *) malloc(sizeof(bit_t));
+  *v = bit_and_s(p, lhsc, rhsc);
 
   return v;
 }
 
 bit_t *bit_or(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
-  protocol_install(p);
-
-  Bit *lhs = static_cast<Bit *>(lhsc->obj);
-  Bit *rhs = static_cast<Bit *>(rhsc->obj);
-
-  bit_t *v;
-  v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs | *rhs);
-
-  protocol_flush(p);
+  bit_t *v = (bit_t *) malloc(sizeof(bit_t));
+  *v = bit_or_s(p, lhsc, rhsc);
 
   return v;
 }
 
 bit_t *bit_xor(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
-  protocol_install(p);
-
-  Bit *lhs = static_cast<Bit *>(lhsc->obj);
-  Bit *rhs = static_cast<Bit *>(rhsc->obj);
-
-  bit_t *v;
-  v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs ^ *rhs);
-
-  protocol_flush(p);
+  bit_t *v = (bit_t *) malloc(sizeof(bit_t));
+  *v = bit_xor_s(p, lhsc, rhsc);
 
   return v;
 }
 
 bit_t *bit_cond(protocol_t *p, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
-  protocol_install(p);
-
-  Bit *guard = static_cast<Bit *>(guardc->obj);
-  Bit *lhs   = static_cast<Bit *>(lhsc->obj);
-  Bit *rhs   = static_cast<Bit *>(rhsc->obj);
-
-  bit_t *v;
-  v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(If(*guard, *lhs, *rhs));
-
-  protocol_flush(p);
+  bit_t *v = (bit_t *) malloc(sizeof(bit_t));
+  *v = bit_cond_s(p, guardc, lhsc, rhsc);
 
   return v;
 }
@@ -161,7 +193,7 @@ bit_t *bit_cond(protocol_t *p, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
 bool bit_reveal(protocol_t *p, bit_t *vc, int party) {
   protocol_install(p);
 
-  Bit *v = static_cast<Bit *>(vc->obj);
+  Bit *v = static_cast<Bit *>((void *) vc->obj);
   bool ret = (*v).reveal<bool>(party);
 
   protocol_flush(p);
@@ -174,7 +206,6 @@ void bit_destroy(bit_t *vc) {
     return;
   }
 
-  delete static_cast<Bit *>(vc->obj);
   free(vc);
 }
 
@@ -278,7 +309,7 @@ bit_t *integer_eq(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs == *rhs);
+  new (v->obj) Bit(*lhs == *rhs);
 
   protocol_flush(p);
 
@@ -293,7 +324,7 @@ bit_t *integer_lt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs < *rhs);
+  new (v->obj) Bit(*lhs < *rhs);
 
   protocol_flush(p);
 
@@ -308,7 +339,7 @@ bit_t *integer_lte(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs <= *rhs);
+  new (v->obj) Bit(*lhs <= *rhs);
 
   protocol_flush(p);
 
@@ -323,7 +354,7 @@ bit_t *integer_gt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  v->obj = new Bit(*lhs > *rhs);
+  new (v->obj) Bit(*lhs > *rhs);
 
   protocol_flush(p);
 
@@ -333,7 +364,7 @@ bit_t *integer_gt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 integer_t *integer_cond(protocol_t *p, bit_t *guardc, integer_t *lhsc, integer_t *rhsc) {
   protocol_install(p);
 
-  Bit *guard   = static_cast<Bit *>(guardc->obj);
+  Bit *guard   = static_cast<Bit *>((void *) guardc->obj);
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
 

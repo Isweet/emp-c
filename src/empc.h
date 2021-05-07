@@ -12,8 +12,17 @@ protocol_t *sh_create(const char *address, int port, int party);
 protocol_t *plain_create();
 void protocol_destroy(protocol_t *p);
 
-struct bit;
-typedef struct bit bit_t;
+typedef struct bit {
+  char obj[32]; //INS: why?
+} bit_t;
+
+bit_t bit_create_s(protocol_t *p, bool b, int party);
+bit_t bit_not_s(protocol_t *p, bit_t *v);
+bit_t bit_and_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
+bit_t bit_or_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
+bit_t bit_xor_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
+bit_t bit_cond_s(protocol_t *p, bit_t *guard, bit_t *lhsc, bit_t *rhsc);
+
 bit_t *bit_create(protocol_t *p, bool b, int party);
 bit_t *bit_not(protocol_t *p, bit_t *v);
 bit_t *bit_and(protocol_t *p, bit_t *lhsc, bit_t *rhsc);

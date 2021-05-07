@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 3.10)
 project (empc)
 set(NAME "empc")
 
+set(CMAKE_BUILD_TYPE Debug)
+
 if (APPLE)
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif()
@@ -28,7 +30,10 @@ target_include_directories(
   ${Boost_INCLUDE_DIRS}
   src)
 
-add_executable(add examples/add.c)
+add_executable(and examples/and.c)
+target_link_libraries(and empc)
+target_include_directories(and PUBLIC empc)
 
+add_executable(add examples/add.c)
 target_link_libraries(add empc)
 target_include_directories(add PUBLIC empc)
