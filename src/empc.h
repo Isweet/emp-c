@@ -10,10 +10,11 @@ typedef struct protocol protocol_t;
 
 protocol_t *sh_create(const char *address, int port, int party);
 protocol_t *plain_create();
+void protocol_flush(protocol_t *p);
 void protocol_destroy(protocol_t *p);
 
 typedef struct bit {
-  char obj[32]; //INS: why?
+  int obj[4];
 } bit_t;
 
 bit_t bit_create_s(protocol_t *p, bool b, int party);

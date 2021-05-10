@@ -1,5 +1,7 @@
 #include "empc.h"
 #include "emp-sh2pc/emp-sh2pc.h"
+#include <immintrin.h>
+
 using namespace emp;
 
 struct protocol {
@@ -27,8 +29,6 @@ protocol_t *sh_create(const char *address, int port, int party) {
   setup_semi_honest(net, party);
   p->circ = CircuitExecution::circ_exec;
   p->prot = ProtocolExecution::prot_exec;
-
-  protocol_flush(p);
 
   return p;
 }
@@ -70,10 +70,10 @@ void protocol_destroy(protocol_t *p) {
 bit_t bit_create_s(protocol_t *p, bool b, int party) {
   protocol_install(p);
 
-  alignas(16) bit_t v;
-  new (v.obj) Bit(b, party);
+  Bit tmp(b, party);
 
-  protocol_flush(p);
+  bit_t v;
+  _mm_storeu_si128((__m128i *) v.obj, tmp.bit);
 
   return v;
 }
@@ -81,12 +81,10 @@ bit_t bit_create_s(protocol_t *p, bool b, int party) {
 bit_t bit_not_s(protocol_t *p, bit_t *bc) {
   protocol_install(p);
 
-  Bit *b = static_cast<Bit *>((void *) bc->obj);
+  Bit b(_mm_loadu_si128((__m128i *) bc->obj));
 
   bit_t v;
-  new (v.obj) Bit(!*b);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v.obj, (!b).bit);
 
   return v;
 }
@@ -94,13 +92,11 @@ bit_t bit_not_s(protocol_t *p, bit_t *bc) {
 bit_t bit_and_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
   protocol_install(p);
 
-  Bit *lhs = static_cast<Bit *>((void *) lhsc->obj);
-  Bit *rhs = static_cast<Bit *>((void *) rhsc->obj);
+  Bit lhs(_mm_loadu_si128((__m128i *) lhsc->obj));
+  Bit rhs(_mm_loadu_si128((__m128i *) rhsc->obj));
 
   bit_t v;
-  new (v.obj) Bit(*lhs & *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v.obj, (lhs & rhs).bit);
 
   return v;
 }
@@ -108,13 +104,11 @@ bit_t bit_and_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
 bit_t bit_or_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
   protocol_install(p);
 
-  Bit *lhs = static_cast<Bit *>((void *) lhsc->obj);
-  Bit *rhs = static_cast<Bit *>((void *) rhsc->obj);
+  Bit lhs(_mm_loadu_si128((__m128i *) lhsc->obj));
+  Bit rhs(_mm_loadu_si128((__m128i *) rhsc->obj));
 
   bit_t v;
-  new (v.obj) Bit(*lhs | *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v.obj, (lhs | rhs).bit);
 
   return v;
 }
@@ -122,13 +116,11 @@ bit_t bit_or_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
 bit_t bit_xor_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
   protocol_install(p);
 
-  Bit *lhs = static_cast<Bit *>((void *) lhsc->obj);
-  Bit *rhs = static_cast<Bit *>((void *) rhsc->obj);
+  Bit lhs(_mm_loadu_si128((__m128i *) lhsc->obj));
+  Bit rhs(_mm_loadu_si128((__m128i *) rhsc->obj));
 
   bit_t v;
-  new (v.obj) Bit(*lhs ^ *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v.obj, (lhs ^ rhs).bit);
 
   return v;
 }
@@ -136,14 +128,12 @@ bit_t bit_xor_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc) {
 bit_t bit_cond_s(protocol_t *p, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
   protocol_install(p);
 
-  Bit *guard = static_cast<Bit *>((void *) guardc->obj);
-  Bit *lhs   = static_cast<Bit *>((void *) lhsc->obj);
-  Bit *rhs   = static_cast<Bit *>((void *) rhsc->obj);
+  Bit guard(_mm_loadu_si128((__m128i *) guardc->obj));
+  Bit lhs(_mm_loadu_si128((__m128i *) lhsc->obj));
+  Bit rhs(_mm_loadu_si128((__m128i *) rhsc->obj));
 
   bit_t v;
-  new (v.obj) Bit(If(*guard, *lhs, *rhs));
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v.obj, If(guard, lhs, rhs).bit);
 
   return v;
 }
@@ -193,10 +183,8 @@ bit_t *bit_cond(protocol_t *p, bit_t *guardc, bit_t *lhsc, bit_t *rhsc) {
 bool bit_reveal(protocol_t *p, bit_t *vc, int party) {
   protocol_install(p);
 
-  Bit *v = static_cast<Bit *>((void *) vc->obj);
-  bool ret = (*v).reveal<bool>(party);
-
-  protocol_flush(p);
+  Bit v(_mm_loadu_si128((__m128i *) vc->obj));
+  bool ret = v.reveal<bool>(party);
 
   return ret;
 }
@@ -221,8 +209,6 @@ integer_t *integer_create(protocol_t *p, int length, int64_t init, int party) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(length, init, party);
 
-  protocol_flush(p);
-
   return v;
 }
 
@@ -235,8 +221,6 @@ integer_t *integer_add(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
   integer_t *v;
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs + *rhs);
-
-  protocol_flush(p);
 
   return v;
 }
@@ -251,8 +235,6 @@ integer_t *integer_sub(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs - *rhs);
 
-  protocol_flush(p);
-
   return v;
 }
 
@@ -265,8 +247,6 @@ integer_t *integer_mult(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
   integer_t *v;
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs * *rhs);
-
-  protocol_flush(p);
 
   return v;
 }
@@ -281,8 +261,6 @@ integer_t *integer_div(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs / *rhs);
 
-  protocol_flush(p);
-
   return v;
 }
 
@@ -296,8 +274,6 @@ integer_t *integer_mod(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
   v      = (integer_t *) malloc(sizeof(integer_t));
   v->obj = new Integer(*lhs % *rhs);
 
-  protocol_flush(p);
-
   return v;
 }
 
@@ -307,11 +283,10 @@ bit_t *integer_eq(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
 
+
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  new (v->obj) Bit(*lhs == *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v->obj, (*lhs == *rhs).bit);
 
   return v;
 }
@@ -324,9 +299,7 @@ bit_t *integer_lt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  new (v->obj) Bit(*lhs < *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v->obj, (*lhs < *rhs).bit);
 
   return v;
 }
@@ -339,9 +312,7 @@ bit_t *integer_lte(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  new (v->obj) Bit(*lhs <= *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v->obj, (*lhs <= *rhs).bit);
 
   return v;
 }
@@ -354,9 +325,7 @@ bit_t *integer_gt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 
   bit_t *v;
   v      = (bit_t *) malloc(sizeof(bit_t));
-  new (v->obj) Bit(*lhs > *rhs);
-
-  protocol_flush(p);
+  _mm_storeu_si128((__m128i *) v->obj, (*lhs > *rhs).bit);
 
   return v;
 }
@@ -364,15 +333,13 @@ bit_t *integer_gt(protocol_t *p, integer_t *lhsc, integer_t *rhsc) {
 integer_t *integer_cond(protocol_t *p, bit_t *guardc, integer_t *lhsc, integer_t *rhsc) {
   protocol_install(p);
 
-  Bit *guard   = static_cast<Bit *>((void *) guardc->obj);
+  Bit guard(_mm_loadu_si128((__m128i *) guardc->obj));
   Integer *lhs = static_cast<Integer *>(lhsc->obj);
   Integer *rhs = static_cast<Integer *>(rhsc->obj);
 
   integer_t *v;
   v      = (integer_t *) malloc(sizeof(integer_t));
-  v->obj= new Integer(If(*guard, *lhs, *rhs));
-
-  protocol_flush(p);
+  v->obj= new Integer(If(guard, *lhs, *rhs));
 
   return v;
 }
@@ -382,8 +349,6 @@ int64_t integer_reveal(protocol_t *p, integer_t *vc, int party) {
 
   Integer *v = static_cast<Integer *>(vc->obj);
   int64_t ret = (*v).reveal<int64_t>(party);
-
-  protocol_flush(p);
 
   return ret;
 }
