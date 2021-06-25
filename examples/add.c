@@ -11,7 +11,8 @@ int main(int argc, char **argv) {
   int party = atoi(argv[1]);
   int input = atoi(argv[2]);
   int port = 12345;
-  protocol_t *p = sh_create(party == alice ? NULL : "127.0.0.1", port, party);
+  netio_t *io = netio_create(party == alice ? NULL : "127.0.0.1", port, true);
+  protocol_t *p = sh_create(io, party);
   integer_t *v1;
   integer_t *v2;
   if (party == alice) {
@@ -27,6 +28,7 @@ int main(int argc, char **argv) {
   integer_destroy(v1);
   integer_destroy(v2);
   integer_destroy(sum);
+  netio_destroy(io);
   protocol_destroy(p);
   return 0;
 }

@@ -4,28 +4,56 @@
 
 using namespace emp;
 
+struct netio {
+  void *obj;
+};
+
+netio_t *netio_create(const char *address, int port, bool quiet) {
+  netio_t *io;
+
+  io      = (netio_t *) malloc(sizeof(netio_t));
+  io->obj = new NetIO(address, port, quiet);
+
+  return io;
+}
+
+void netio_send(netio_t *io, void *data, int nbyte) {
+  NetIO *net = static_cast<NetIO *>(io->obj);
+  net->send_data(data, nbyte);
+}
+
+void netio_recv(netio_t *io, void *data, int nbyte) {
+  NetIO *net = static_cast<NetIO *>(io->obj);
+  net->recv_data(data, nbyte);
+}
+
+void netio_flush(netio_t *io) {
+  NetIO *net = static_cast<NetIO *>(io->obj);
+  net->flush();
+}
+
+void netio_destroy(netio_t *io) {
+  if (io == NULL) {
+    return;
+  }
+
+  delete static_cast<NetIO *>(io->obj);
+  free(io);
+}
+
 struct protocol {
   int tag;
-  void *net;
   void *circ;
   void *prot;
 };
 
-void protocol_flush(protocol_t *p) {
-  if (p->tag == 0) {
-    NetIO *net = static_cast<NetIO *>(p->net);
-    net->flush();
-  }
-}
+protocol_t *sh_create(netio_t *io, int party) {
+  NetIO *net = static_cast<NetIO *>(io->obj);
 
-protocol_t *sh_create(const char *address, int port, int party) {
   protocol_t *p;
-
-  NetIO *net = new NetIO(address, port, false);
 
   p = (protocol_t *) malloc(sizeof(protocol_t));
   p->tag  = 0;
-  p->net  = net;
   setup_semi_honest(net, party);
   p->circ = CircuitExecution::circ_exec;
   p->prot = ProtocolExecution::prot_exec;
@@ -38,7 +66,6 @@ protocol_t *plain_create() {
 
   p = (protocol_t *) malloc(sizeof(protocol_t));
   p->tag = 1;
-  p->net = NULL;
   setup_plain_prot(false, "/dev/null");
   p->circ = CircuitExecution::circ_exec;
   p->prot = ProtocolExecution::prot_exec;
@@ -56,7 +83,6 @@ void protocol_destroy(protocol_t *p) {
   protocol_install(p);
 
   if (p->tag == 0) {
-    delete static_cast<NetIO *>(p->net);
     finalize_semi_honest();
   } else if (p->tag == 1) {
     finalize_plain_prot();
