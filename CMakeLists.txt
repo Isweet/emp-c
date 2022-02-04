@@ -8,27 +8,29 @@ if (APPLE)
   set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
 endif()
 
+find_package(openssl REQUIRED)
 find_package(emp-tool REQUIRED)
 find_package(emp-ot REQUIRED)
 find_package(emp-sh2pc REQUIRED)
+#find_package(spdz REQUIRED)
 
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_FLAGS "-march=native -O3")
 set(CMAKE_CXX_FLAGS "-march=native -O3")
 
-add_library(empc SHARED src/empc.cpp)
+add_library(empc SHARED src/emp.cpp)
 
 target_link_libraries(
   empc
-  ${EMP-TOOL_LIBRARY}
   ${OPENSSL_LIBRARIES}
-  ${Boost_LIBRARIES})
+  ${EMP-TOOL_LIBRARIES}
+  ${SPDZ_LIBRARIES})
 
 target_include_directories(
   empc PUBLIC
-  ${EMP-TOOL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
-  ${Boost_INCLUDE_DIRS}
+  ${EMP-TOOL_INCLUDE_DIR}
+  ${SPDZ_INCLUDE_DIR}
   src)
 
 add_executable(and examples/and.c)

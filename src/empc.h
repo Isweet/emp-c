@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+  // NetIO
   struct netio;
   typedef struct netio netio_t;
   netio_t *netio_create(const char *address, int port, bool quiet);
@@ -13,48 +14,64 @@ extern "C" {
   void netio_flush(netio_t *io);
   void netio_destroy(netio_t *io);
 
-  struct protocol;
-  typedef struct protocol protocol_t;
+  // EMP
+  struct emp_ctx;
+  typedef struct emp_ctx emp_ctx_t;
 
-  protocol_t *sh_create(netio_t *io, int party);
-  protocol_t *plain_create();
-  void protocol_destroy(protocol_t *p);
+  emp_ctx_t *emp_sh_create(netio_t *io, int party);
+  emp_ctx_t *emp_plain_create();
+  void emp_destroy(emp_ctx_t *p);
 
-  typedef struct bit {
+  typedef struct emp_bit {
     int obj[4];
-  } bit_t;
+  } emp_bit_t;
 
-  bit_t bit_create_s(protocol_t *p, bool b, int party);
-  bit_t bit_not_s(protocol_t *p, bit_t *v);
-  bit_t bit_and_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
-  bit_t bit_or_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
-  bit_t bit_xor_s(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
-  bit_t bit_cond_s(protocol_t *p, bit_t *guard, bit_t *lhsc, bit_t *rhsc);
+  emp_bit_t emp_bit_create_s(emp_ctx_t *p, bool b, int party);
+  emp_bit_t emp_bit_not_s(emp_ctx_t *p, emp_bit_t *v);
+  emp_bit_t emp_bit_and_s(emp_ctx_t *p, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  emp_bit_t emp_bit_or_s(emp_ctx_t *p, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  emp_bit_t emp_bit_xor_s(emp_ctx_t *p, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  emp_bit_t emp_bit_cond_s(emp_ctx_t *p, emp_bit_t *guard, emp_bit_t *lhsc, emp_bit_t *rhsc);
 
-  bit_t *bit_create(protocol_t *p, bool b, int party);
-  bit_t *bit_not(protocol_t *p, bit_t *v);
-  bit_t *bit_and(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
-  bit_t *bit_or(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
-  bit_t *bit_xor(protocol_t *p, bit_t *lhsc, bit_t *rhsc);
-  bit_t *bit_cond(protocol_t *p, bit_t *guard, bit_t *lhsc, bit_t *rhsc);
-  bool bit_reveal(protocol_t *p, bit_t *vc, int party);
-  void bit_destroy(bit_t *v);
+  emp_bit_t *emp_bit_create(emp_ctx_t *p, bool b, int party);
+  emp_bit_t *emp_bit_not(emp_ctx_t *p, emp_bit_t *v);
+  emp_bit_t *emp_bit_and(emp_ctx_t *p, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  emp_bit_t *emp_bit_or(emp_ctx_t *p, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  emp_bit_t *emp_bit_xor(emp_ctx_t *p, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  emp_bit_t *emp_bit_cond(emp_ctx_t *p, emp_bit_t *guard, emp_bit_t *lhsc, emp_bit_t *rhsc);
+  bool emp_bit_reveal(emp_ctx_t *p, emp_bit_t *vc, int party);
+  void emp_bit_destroy(emp_bit_t *v);
 
-  struct integer;
-  typedef struct integer integer_t;
-  integer_t *integer_create(protocol_t *p, int length, int64_t v, int party);
-  integer_t *integer_add(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  integer_t *integer_sub(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  integer_t *integer_mult(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  integer_t *integer_div(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  integer_t *integer_mod(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  bit_t *integer_eq(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  bit_t *integer_lt(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  bit_t *integer_lte(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  bit_t *integer_gt(protocol_t *p, integer_t *lhsc, integer_t *rhsc);
-  integer_t *integer_cond(protocol_t *p, bit_t *guard, integer_t *lhsc, integer_t *rhsc);
-  int64_t integer_reveal(protocol_t *p, integer_t *vc, int party);
-  void integer_destroy(integer_t *v);
+  struct emp_integer;
+  typedef struct emp_integer emp_integer_t;
+  emp_integer_t *emp_integer_create(emp_ctx_t *p, int length, int64_t v, int party);
+  emp_integer_t *emp_integer_add(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_integer_t *emp_integer_sub(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_integer_t *emp_integer_mult(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_integer_t *emp_integer_div(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_integer_t *emp_integer_mod(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_bit_t *emp_integer_eq(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_bit_t *emp_integer_lt(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_bit_t *emp_integer_lte(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_bit_t *emp_integer_gt(emp_ctx_t *p, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  emp_integer_t *emp_integer_cond(emp_ctx_t *p, emp_bit_t *guard, emp_integer_t *lhsc, emp_integer_t *rhsc);
+  int64_t emp_integer_reveal(emp_ctx_t *p, emp_integer_t *vc, int party);
+  void emp_integer_destroy(emp_integer_t *v);
+
+  // SPDZ
+  struct spdz;
+  typedef struct spdz spdz_t;
+
+  spdz_t *spdz_create(int party, int nparties);
+  void spdz_destroy(spdz_t *p);
+
+  struct spdz_int64;
+  typedef struct spdz_int64 spdz_int64_t;
+  spdz_int64_t *spdz_int64_create(spdz_t *p, int party, int64_t v);
+  spdz_int64_t *spdz_int64_add(spdz_t *p, spdz_int64_t *lhs, spdz_int64_t *rhs);
+  spdz_int64_t *spdz_int64_mult(spdz_t *p, spdz_int64_t *lhs, spdz_int64_t *rhs);
+  int64_t spdz_int64_reveal(spdz_t *p, int party, spdz_int64_t sh);
+  void spdz_int64_destroy(spdz_int64_t *sh);
 
 #ifdef __cplusplus
 }

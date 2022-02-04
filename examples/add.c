@@ -12,23 +12,23 @@ int main(int argc, char **argv) {
   int input = atoi(argv[2]);
   int port = 12345;
   netio_t *io = netio_create(party == alice ? NULL : "127.0.0.1", port, true);
-  protocol_t *p = sh_create(io, party);
-  integer_t *v1;
-  integer_t *v2;
+  emp_ctx_t *p = emp_sh_create(io, party);
+  emp_integer_t *v1;
+  emp_integer_t *v2;
   if (party == alice) {
-    v1 = integer_create(p, 64, input, alice);
-    v2 = integer_create(p, 64, 0, bob);
+    v1 = emp_integer_create(p, 64, input, alice);
+    v2 = emp_integer_create(p, 64, 0, bob);
   }
   if (party == bob) {
-    v1 = integer_create(p, 64, 0, alice);
-    v2 = integer_create(p, 64, input, bob);
+    v1 = emp_integer_create(p, 64, 0, alice);
+    v2 = emp_integer_create(p, 64, input, bob);
   }
-  integer_t *sum = integer_add(p, v1, v2);
-  printf("Sum is %lld\n", integer_reveal(p, sum, public));
-  integer_destroy(v1);
-  integer_destroy(v2);
-  integer_destroy(sum);
+  emp_integer_t *sum = emp_integer_add(p, v1, v2);
+  printf("Sum is %lld\n", emp_integer_reveal(p, sum, public));
+  emp_integer_destroy(v1);
+  emp_integer_destroy(v2);
+  emp_integer_destroy(sum);
   netio_destroy(io);
-  protocol_destroy(p);
+  emp_destroy(p);
   return 0;
 }
