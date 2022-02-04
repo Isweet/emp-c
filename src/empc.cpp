@@ -19,12 +19,12 @@ netio_t *netio_create(const char *address, int port, bool quiet) {
 
 void netio_send(netio_t *io, void *data, int nbyte) {
   NetIO *net = static_cast<NetIO *>(io->obj);
-  net->send_data(data, nbyte);
+  net->send_data_internal(data, nbyte);
 }
 
 void netio_recv(netio_t *io, void *data, int nbyte) {
   NetIO *net = static_cast<NetIO *>(io->obj);
-  net->recv_data(data, nbyte);
+  net->recv_data_internal(data, nbyte);
 }
 
 void netio_flush(netio_t *io) {
