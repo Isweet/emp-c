@@ -59,18 +59,18 @@ extern "C" {
   void emp_integer_destroy(emp_integer_t *v);
 
   // SPDZ
-  struct spdz;
-  typedef struct spdz spdz_t;
+  struct spdz_ctx;
+  typedef struct spdz_ctx spdz_ctx_t;
 
-  spdz_t *spdz_create(int party, int nparties);
-  void spdz_destroy(spdz_t *p);
+  spdz_ctx_t *spdz_create(int party, int nparties);
+  void spdz_destroy(spdz_ctx_t *p);
 
   struct spdz_int64;
   typedef struct spdz_int64 spdz_int64_t;
-  spdz_int64_t *spdz_int64_create(spdz_t *p, int party, int64_t v);
-  spdz_int64_t *spdz_int64_add(spdz_t *p, spdz_int64_t *lhs, spdz_int64_t *rhs);
-  spdz_int64_t *spdz_int64_mult(spdz_t *p, spdz_int64_t *lhs, spdz_int64_t *rhs);
-  int64_t spdz_int64_reveal(spdz_t *p, int party, spdz_int64_t sh);
+  spdz_int64_t *spdz_int64_create(spdz_ctx_t *p, int party, int64_t v);
+  spdz_int64_t *spdz_int64_add(spdz_ctx_t *p, spdz_int64_t *lhs, spdz_int64_t *rhs);
+  spdz_int64_t *spdz_int64_mult(spdz_ctx_t *p, spdz_int64_t *lhs, spdz_int64_t *rhs);
+  int64_t spdz_int64_reveal(spdz_ctx_t *p, int party, spdz_int64_t *sh);
   void spdz_int64_destroy(spdz_int64_t *sh);
 
 #ifdef __cplusplus

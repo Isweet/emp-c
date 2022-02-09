@@ -38,3 +38,7 @@ target_include_directories(and PUBLIC empc)
 add_executable(add examples/add.c)
 target_link_libraries(add empc)
 target_include_directories(add PUBLIC empc)
+
+add_executable(mult examples/mult.c)
+target_link_libraries(mult empc)
+target_include_directories(mult PUBLIC empc)
