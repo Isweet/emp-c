@@ -18,27 +18,27 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_FLAGS "-march=native -O3")
 set(CMAKE_CXX_FLAGS "-march=native -O3")
 
-add_library(empc SHARED src/emp.cpp src/spdz.cpp)
+add_library(symphony SHARED src/net/net.cpp src/emp/emp.cpp src/spdz/spdz.cpp)
 
 target_link_libraries(
-  empc
+  symphony
   ${EMP-TOOL_LIBRARY}
   spdz)
 
 target_include_directories(
-  empc PUBLIC
+  symphony PUBLIC
   ${EMP-TOOL_INCLUDE_DIR}
   ${SPDZ_INCLUDE_DIR}
   src)
 
 add_executable(and examples/and.c)
-target_link_libraries(and empc)
-target_include_directories(and PUBLIC empc)
+target_link_libraries(and symphony)
+target_include_directories(and PUBLIC symphony)
 
 add_executable(add examples/add.c)
-target_link_libraries(add empc)
-target_include_directories(add PUBLIC empc)
+target_link_libraries(add symphony)
+target_include_directories(add PUBLIC symphony)
 
 add_executable(mult examples/mult.c)
-target_link_libraries(mult empc)
-target_include_directories(mult PUBLIC empc)
+target_link_libraries(mult symphony)
+target_include_directories(mult PUBLIC symphony)

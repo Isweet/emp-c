@@ -1,11 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "empc.h"
+#include "symphony.h"
 
-int alice = 0;
-int bob = 1;
+uint16_t alice = 0;
+uint16_t bob = 1;
 
 int main(int argc, char **argv) {
+  /*
   int party = atoi(argv[1]);
   int64_t input = atoi(argv[2]);
   int port  = 9999;
@@ -21,5 +22,6 @@ int main(int argc, char **argv) {
   spdz_int64_destroy(sum);
   spdz_int64_destroy(prod);
   spdz_destroy(p);
+  */
   return 0;
 }
